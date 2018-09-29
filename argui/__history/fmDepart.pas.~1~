@@ -1,0 +1,251 @@
+unit fmDepart;
+
+interface
+
+uses
+  Windows, Messages, SysUtils, Variants, Classes, Graphics, Controls, Forms,
+  Dialogs, RXSplit, DB, OracleData, StdCtrls, RxLookup, ExtCtrls, cxStyles,
+  cxCustomData, cxGraphics, cxFilter, cxData, cxDataStorage, cxEdit,
+  cxDBData, cxGridLevel, cxClasses, cxControls, cxGridCustomView,
+  cxGridCustomTableView, cxGridTableView, cxGridDBTableView, cxGrid,
+  ComCtrls, dxtree, dxdbtree, cxPC, ImgList, DBCtrls, Mask, Buttons, Menus;
+
+type
+  TfmDepa = class(TForm)
+    Panel1: TPanel;
+    cbTree: TRxDBLookupCombo;
+    Label1: TLabel;
+    quTree: TOracleDataSet;
+    dsTree: TDataSource;
+    taRisDepa: TOracleDataSet;
+    dsRisDepa: TDataSource;
+    Panel2: TPanel;
+    RxSplitter1: TRxSplitter;
+    quRisDeTy: TOracleDataSet;
+    taRisDepaDEPART_ID: TIntegerField;
+    taRisDepaDEPART_ROOT: TIntegerField;
+    taRisDepaDESCRIPTION: TStringField;
+    taRisDepaDEPART: TStringField;
+    taRisDepaTREE_ID: TIntegerField;
+    taRisDepaRGROUP: TIntegerField;
+    taRisDepaTYPE_ID: TIntegerField;
+    taRisDepaTIP_OPIS: TStringField;
+    ImageList1: TImageList;
+    Panel5: TPanel;
+    pcDepa: TcxPageControl;
+    tsTreeView: TcxTabSheet;
+    tvDepa: TdxDBTreeView;
+    Panel4: TPanel;
+    sbAdd: TSpeedButton;
+    sbDelete: TSpeedButton;
+    sbRefresh: TSpeedButton;
+    tstable: TcxTabSheet;
+    grDepa: TcxGrid;
+    viDepa: TcxGridDBTableView;
+    leDepa: TcxGridLevel;
+    Panel3: TPanel;
+    Panel6: TPanel;
+    PageControl1: TPageControl;
+    TabSheet1: TTabSheet;
+    Label2: TLabel;
+    edDepart: TDBEdit;
+    Label3: TLabel;
+    edNadrejeni: TDBEdit;
+    Label4: TLabel;
+    edSifra: TDBEdit;
+    Label5: TLabel;
+    edOpis: TDBEdit;
+    cbTipOE: TDBLookupComboBox;
+    Label6: TLabel;
+    PMDepa: TPopupMenu;
+    Dodaj1: TMenuItem;
+    Briizapis1: TMenuItem;
+    Osvei1: TMenuItem;
+    quPodrejeni: TOracleDataSet;
+    sbClose: TBitBtn;
+    sbSave: TBitBtn;
+    viDepaDEPART_ID: TcxGridDBColumn;
+    viDepaDEPART_ROOT: TcxGridDBColumn;
+    viDepaDEPART: TcxGridDBColumn;
+    viDepaDESCRIPTION: TcxGridDBColumn;
+    viDepaTYPE_ID: TcxGridDBColumn;
+    viDepaTREE_ID: TcxGridDBColumn;
+    viDepaRGROUP: TcxGridDBColumn;
+    viDepaTIP_OPIS: TcxGridDBColumn;
+    procedure cbTreeChange(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure sbRefreshClick(Sender: TObject);
+    procedure sbAddClick(Sender: TObject);
+    procedure sbDeleteClick(Sender: TObject);
+    procedure sbCancelClick(Sender: TObject);
+    procedure Dodaj1Click(Sender: TObject);
+    procedure Briizapis1Click(Sender: TObject);
+    procedure Osvei1Click(Sender: TObject);
+    procedure taRisDepaBeforeDelete(DataSet: TDataSet);
+    procedure BitBtn2Click(Sender: TObject);
+  private
+    { Private declarations }
+    Root_id : String;
+    Tree_id : String;
+    procedure doSaveChanges;
+    procedure DeleteOddelekVGlobino;
+    function IzbiraSheme: Boolean;
+  public
+    { Public declarations }
+  end;
+
+var
+  fmDepa: TfmDepa;
+
+type
+  ESubDepartExist = class (Exception);
+
+implementation
+
+uses dmOra, fmDepartment, ResStrings;
+
+{$R *.dfm}
+
+procedure TfmDepa.cbTreeChange(Sender: TObject);
+begin
+   taRisDepa.Close;
+   taRisDepa.Open;
+end;
+
+procedure TfmDepa.FormCreate(Sender: TObject);
+begin
+  quTree.Open;
+  quRisDeTy.Open;
+end;
+
+procedure TfmDepa.sbRefreshClick(Sender: TObject);
+begin
+   taRisDepa.Close;
+   taRisDepa.Open;
+end;
+
+procedure TfmDepa.sbAddClick(Sender: TObject);
+begin
+  if IzbiraSheme = False then
+    Exit;
+  
+  if taRisDepa.Active = false then
+    taRisDepa.Open;
+
+  if tvDepa.Items.Count <> 0 then
+  begin
+    Root_id := taRisDepa.FieldByName('DEPART_ID').AsString;
+  end
+  else
+  begin
+    Root_id := '0';
+  end;
+
+  fmDepart2 := TfmDepart2.Create (self);
+
+  taRisDepa.Insert;
+  edSifra.SetFocus;
+
+  fmDepart2.ShowModal;
+  fmDepart2.Destroy;
+end;
+
+function TfmDepa.IzbiraSheme: Boolean;
+begin
+  Result := True;
+
+  if cbTree.Value = '' then begin
+    MessageDlg(C_FMDEPART_MSG_SHEMA, mtConfirmation,[mbOK], 0) ;
+    Result := False;
+  end;
+end;
+
+procedure TfmDepa.doSaveChanges;
+begin
+
+  if taRisDepa.State = dsInsert then begin
+    taRisDepa.Post;
+    taRisDepa.CommitUpdates;
+  end;
+
+  if taRisDepa.UpdateStatus = usModified then begin
+    taRisDepa.Post;
+    taRisDepa.CommitUpdates;
+  end;
+
+end;
+
+procedure TfmDepa.sbDeleteClick(Sender: TObject);
+begin
+  if IzbiraSheme = False then
+    Exit;
+    
+  if (MessageDlg(C_FMDEPART_MSG_SBDELETECLICK, mtConfirmation,
+                  [mbYes, mbNo], 0) = mrYes) then
+    DeleteOddelekVGlobino;
+end;
+
+procedure TfmDepa.DeleteOddelekVGlobino;
+begin
+   try
+      taRisDepa.Delete;
+      taRisDepa.Session.Commit;
+   except
+      on ESubDepartExist do
+        raise;
+      else
+        MessageDlg(C_fmDepart_MSG_DeleteOddelekVGlobino, mtError,
+                  [mbOk], 0);
+   end;
+end;
+
+procedure TfmDepa.sbCancelClick(Sender: TObject);
+begin
+   if taRisDepa.UpdateStatus = usModified then begin
+      if MessageDlg(C_FMDEPART_MSG_SBCANCELCLICK ,
+                     mtConfirmation, [mbYes, mbNo], 0) = mrYes then
+                     Modalresult := mrCancel;
+   end else
+      ModalResult := mrCancel;
+end;
+
+procedure TfmDepa.Dodaj1Click(Sender: TObject);
+begin
+   sbAddClick(nil);
+end;
+
+procedure TfmDepa.Briizapis1Click(Sender: TObject);
+begin
+   sbDeleteClick(nil);
+end;
+
+procedure TfmDepa.Osvei1Click(Sender: TObject);
+begin
+   sbRefreshClick(nil);
+end;
+
+procedure TfmDepa.taRisDepaBeforeDelete(DataSet: TDataSet);
+begin
+  with quPodrejeni do begin
+     Close;
+     quPodrejeni.SetVariable('P_DEPART_ID', taRisDepaDEPART_ID.AsInteger);
+     Open;
+     if quPodrejeni.FieldByName('STEVILO').AsInteger > 0 then
+        raise ESubDepartExist.Create(C_EXCEPT_MSG_SUBDEPART_EXIST);
+  end;
+
+end;
+
+procedure TfmDepa.BitBtn2Click(Sender: TObject);
+begin
+
+  //taRisDepa.FieldByName('DEPART_ROOT').AsString := root_id ;
+  //taRisDepa.FieldByName('TREE_ID').AsString := QuTree.FieldbyName('TREE_ID').AsString ;
+
+  doSaveChanges;
+
+  //taRisDepa.Close;
+  //taRisDepa.Open;
+end;
+
+end.
